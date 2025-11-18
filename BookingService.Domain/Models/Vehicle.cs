@@ -29,5 +29,7 @@ public partial class Vehicle
 
     public virtual ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 
+    public virtual Driver Driver { get; set; }
+
     public virtual VehicleModel Model { get; set; }
 }

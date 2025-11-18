@@ -9,10 +9,6 @@ namespace BookingService.Domain.Models;
 
 public partial class ev_battery_swapContext : DbContext
 {
-    public ev_battery_swapContext()
-    {
-    }
-
     public ev_battery_swapContext(DbContextOptions<ev_battery_swapContext> options)
         : base(options)
     {
@@ -24,12 +20,13 @@ public partial class ev_battery_swapContext : DbContext
 
     public virtual DbSet<Booking> Bookings { get; set; }
 
+    public virtual DbSet<Driver> Drivers { get; set; }
+
     public virtual DbSet<Station> Stations { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
     public virtual DbSet<VehicleModel> VehicleModels { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -187,6 +184,10 @@ public partial class ev_battery_swapContext : DbContext
                 .HasColumnName("updated_at");
             entity.Property(e => e.VehicleId).HasColumnName("vehicle_id");
 
+            entity.HasOne(d => d.Driver).WithMany(p => p.Bookings)
+                .HasForeignKey(d => d.DriverId)
+                .HasConstraintName("fk_bookings_drivers");
+
             entity.HasOne(d => d.Station).WithMany(p => p.Bookings)
                 .HasForeignKey(d => d.StationId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -196,6 +197,33 @@ public partial class ev_battery_swapContext : DbContext
                 .HasForeignKey(d => d.VehicleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_bookings_vehicles");
+        });
+
+        modelBuilder.Entity<Driver>(entity =>
+        {
+            entity.HasKey(e => e.DriverId).HasName("pk_drivers");
+
+            entity.ToTable("drivers");
+
+            entity.HasIndex(e => e.UserId, "UQ__drivers__B9BE370EBF93FBE9").IsUnique();
+
+            entity.HasIndex(e => new { e.SubscriptionPlanId, e.SubscriptionStatus }, "ix_drivers_subscription");
+
+            entity.Property(e => e.DriverId)
+                .HasDefaultValueSql("(newid())")
+                .HasColumnName("driver_id");
+            entity.Property(e => e.DriverLicense)
+                .HasMaxLength(50)
+                .HasColumnName("driver_license");
+            entity.Property(e => e.LoyaltyPoints).HasColumnName("loyalty_points");
+            entity.Property(e => e.SubscriptionEndDate).HasColumnName("subscription_end_date");
+            entity.Property(e => e.SubscriptionPlanId).HasColumnName("subscription_plan_id");
+            entity.Property(e => e.SubscriptionStartDate).HasColumnName("subscription_start_date");
+            entity.Property(e => e.SubscriptionStatus)
+                .HasMaxLength(20)
+                .HasColumnName("subscription_status");
+            entity.Property(e => e.TotalSwaps).HasColumnName("total_swaps");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
         });
 
         modelBuilder.Entity<Station>(entity =>
@@ -299,6 +327,10 @@ public partial class ev_battery_swapContext : DbContext
                 .IsRequired()
                 .HasMaxLength(17)
                 .HasColumnName("vin");
+
+            entity.HasOne(d => d.Driver).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.DriverId)
+                .HasConstraintName("fk_vehicles_drivers");
 
             entity.HasOne(d => d.Model).WithMany(p => p.Vehicles)
                 .HasForeignKey(d => d.ModelId)

@@ -1,7 +1,9 @@
 using BookingService.Application.DTOs;
 using BookingService.Application.Interfaces;
+using BookingService.Domain.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace BookingService.Controllers;
@@ -12,10 +14,12 @@ namespace BookingService.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
+    private readonly IDriverRepository _driverRepository;
 
-    public BookingsController(IBookingService bookingService)
+    public BookingsController(IBookingService bookingService, IDriverRepository driverRepository)
     {
         _bookingService = bookingService;
+        _driverRepository = driverRepository;
     }
 
     [HttpPost]
@@ -24,10 +28,19 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var driverId = Guid.Parse(User.FindFirst("driverId")?.Value 
-                ?? throw new UnauthorizedAccessException("Driver ID not found in token"));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             
-            var booking = await _bookingService.CreateBookingAsync(request, driverId);
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new UnauthorizedAccessException("User ID not found in token");
+            
+            var userId = Guid.Parse(userIdClaim);
+            var driverId = await _driverRepository.GetDriverIdByUserIdAsync(userId);
+            
+            if (!driverId.HasValue)
+                throw new UnauthorizedAccessException("Driver profile not found for this user");
+            
+            var booking = await _bookingService.CreateBookingAsync(request, driverId.Value);
             return CreatedAtAction(nameof(GetBooking), new { id = booking.BookingId }, booking);
         }
         catch (KeyNotFoundException ex)
@@ -53,10 +66,19 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var driverId = Guid.Parse(User.FindFirst("driverId")?.Value 
-                ?? throw new UnauthorizedAccessException("Driver ID not found in token"));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             
-            var booking = await _bookingService.GetBookingByIdAsync(id, driverId);
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new UnauthorizedAccessException("User ID not found in token");
+            
+            var userId = Guid.Parse(userIdClaim);
+            var driverId = await _driverRepository.GetDriverIdByUserIdAsync(userId);
+            
+            if (!driverId.HasValue)
+                throw new UnauthorizedAccessException("Driver profile not found for this user");
+            
+            var booking = await _bookingService.GetBookingByIdAsync(id, driverId.Value);
             return Ok(booking);
         }
         catch (KeyNotFoundException ex)
@@ -78,10 +100,19 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var driverId = Guid.Parse(User.FindFirst("driverId")?.Value 
-                ?? throw new UnauthorizedAccessException("Driver ID not found in token"));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             
-            var bookings = await _bookingService.GetDriverBookingsAsync(driverId);
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new UnauthorizedAccessException("User ID not found in token");
+            
+            var userId = Guid.Parse(userIdClaim);
+            var driverId = await _driverRepository.GetDriverIdByUserIdAsync(userId);
+            
+            if (!driverId.HasValue)
+                throw new UnauthorizedAccessException("Driver profile not found for this user");
+            
+            var bookings = await _bookingService.GetDriverBookingsAsync(driverId.Value);
             return Ok(bookings);
         }
         catch (Exception ex)
@@ -95,10 +126,19 @@ public class BookingsController : ControllerBase
     {
         try
         {
-            var driverId = Guid.Parse(User.FindFirst("driverId")?.Value 
-                ?? throw new UnauthorizedAccessException("Driver ID not found in token"));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
             
-            var booking = await _bookingService.CancelBookingAsync(id, driverId);
+            if (string.IsNullOrEmpty(userIdClaim))
+                throw new UnauthorizedAccessException("User ID not found in token");
+            
+            var userId = Guid.Parse(userIdClaim);
+            var driverId = await _driverRepository.GetDriverIdByUserIdAsync(userId);
+            
+            if (!driverId.HasValue)
+                throw new UnauthorizedAccessException("Driver profile not found for this user");
+            
+            var booking = await _bookingService.CancelBookingAsync(id, driverId.Value);
             return Ok(booking);
         }
         catch (KeyNotFoundException ex)

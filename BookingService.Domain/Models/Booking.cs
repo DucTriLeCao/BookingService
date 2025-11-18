@@ -27,6 +27,8 @@ public partial class Booking
 
     public DateTime UpdatedAt { get; set; }
 
+    public virtual Driver Driver { get; set; }
+
     public virtual Station Station { get; set; }
 
     public virtual Vehicle Vehicle { get; set; }
